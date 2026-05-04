@@ -1,0 +1,275 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Kc9BBdnuPcO3kaN_xBVlwbvN9lEMkoC38M9ZpleYL5k",
+          "mode": "list",
+          "cachedResultName": "Managers",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Kc9BBdnuPcO3kaN_xBVlwbvN9lEMkoC38M9ZpleYL5k/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Kc9BBdnuPcO3kaN_xBVlwbvN9lEMkoC38M9ZpleYL5k/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        0
+      ],
+      "id": "a90f6655-9441-4418-8f11-c69b930a5aca",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2gPSDdlKNXQqOiSo",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Updated Prompt (English)\n\nYou are an intelligent assistant for the \"SchoolTest\" online school. Your task is to analyze a student's application and assign the most suitable manager based on their profile.\n\nAvailable Managers List:\n{{ $json.managers_list }}\n\nSelection Criteria:\n\nOlena: Assign if the goal is related to international exams (IELTS, TOEFL, etc.).\n\nDmytro: Assign if the student is a child or teenager.\n\nMariia: Assign if the request is related to Business English or the IT industry.\n\nIryna: Assign for general English, travel goals, or if the request doesn't fit the above categories.\n\nStudent Data:\n\nTelegram Name: {{ $('Google Sheets Trigger').item.json.Name }}\n\nCurrent English Level: {{ $('Google Sheets Trigger').item.json['Current English level'] }}\n\nGoal: {{ $('Google Sheets Trigger').item.json.Goal }}\n\nOutput Requirements:\nYour response must be ONLY in JSON format. The welcome_message should be friendly, mention the student's name, and state that you (the managerName) are ready to help them achieve their specific goal.\nJson example\n{\n  \"manager_id\": \"ID number\",\n  \"manager_name\": \"Name\",\n  \"manager_telegram_id\": \"Telegram ID (numeric)\",\n  \"reason\": \"Brief explanation of why this manager was chosen\",\n  \"welcome_message\": \"A personalized greeting (e.g., 'Hi [Name]! I'm [Manager Name], and I'd be happy to help you with [Goal]...')\",\n  \"student_details\": {\n    \"name\": \"{{ $('Google Sheets Trigger').item.json.Name }}\",\n    \"level\": \"{{ $('Google Sheets Trigger').item.json['Current English level'] }}\",\n    \"goal\": \"{{ $('Google Sheets Trigger').item.json.Goal }}\"\n  }\n}",
+        "options": {
+          "systemMessage": "="
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1072,
+        0
+      ],
+      "id": "3e8aebd0-a812-476d-b76e-248c23c99e35",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1144,
+        224
+      ],
+      "id": "f1c7783e-069f-41a1-9464-2fea5ed681e9",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ilFHkZXoiGjUvEF5",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Отримуємо всі вхідні об'єкти\nconst allData = Array.from($input.all()); \n\n// Перетворюємо їх на один текстовий список\nconst managers = allData.map(item => {\n  const m = item.json;\n  return `TelegramId: ${m.Telegram_id}, Name: ${m.Name}, Level: ${m.Level}, Specialization: ${m.Specialization}`;\n}).join('\\n');\n\n// Повертаємо один об'єкт, який містить цей список\nreturn { \n  managers_list: managers \n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        0
+      ],
+      "id": "ea1ef8d9-0901-414d-9295-74bb33a8f1d2",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.manager_telegram_id }}",
+        "text": "=🚀 <b>New Student Lead Assigned!</b>\n\nHi {{ $json.manager_name }}, you have been chosen as the manager for this student.\n\n<b>Reason:</b> \n<i>{{ $json.reason }}</i>\n\n📌 <b>Student Details:</b>\n• <b>Name:</b> {{ $json.student_details.name }}\n• <b>Level:</b> <code>{{ $json.student_details.level }}</code>\n• <b>Goal:</b> {{ $json.student_details.goal }}\n\n📝 <b>Suggested Welcome Message:</b>\n<code>{{ $json.welcome_message }}</code>\n\n✅ <i>Please contact the student as soon as possible.</i>",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1648,
+        0
+      ],
+      "id": "218521df-b82b-4944-8517-4e745ed55616",
+      "name": "Send a text message",
+      "webhookId": "3d5f0068-2ae5-44ed-bf7b-dfc4c62f63ec",
+      "credentials": {
+        "telegramApi": {
+          "id": "iPZLRPoglKU0vgW7",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "10IyDhWOo20zemt8HA2dwt-gzo72hEzU9A1jPlt01mMI",
+          "mode": "list",
+          "cachedResultName": "Onboarding",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10IyDhWOo20zemt8HA2dwt-gzo72hEzU9A1jPlt01mMI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 241341888,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10IyDhWOo20zemt8HA2dwt-gzo72hEzU9A1jPlt01mMI/edit#gid=241341888"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        176,
+        0
+      ],
+      "id": "777920d1-a0ac-42c3-9a07-6ebf601f8058",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "HeWhMGT9IgE9YZnX",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "46055ae0-b113-4efb-bbc3-f1aa5ef9c064",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "let rawString = $input.first().json.output\n\nrawString = rawString.replace(/```json/g, \"\").replace(/```/g, \"\").trim();\n\ntry {\n  const cleanJson = JSON.parse(rawString);\n  return cleanJson;\n} catch (e) {\n  return { error: \"Failed to parse JSON\", original: rawString };\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        0
+      ],
+      "id": "562834c4-4e33-495d-a8c0-5f81bbaacf5c",
+      "name": "Code in JavaScript1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "7e48726b-17c7-4519-ac8a-25fbdd49911f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "afd19ccddefc90157d7e1ebbcda08e3904ce31dde5104595358632555e578ad0"
+  },
+  "id": "sEXc6KgscmNZnyBo",
+  "tags": []
+}
