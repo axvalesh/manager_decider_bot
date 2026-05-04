@@ -1,0 +1,9 @@
+# Credentials and Secrets
+*.json
+.env
+.DS_Store
+# Python folders
+__pycache__/
+*.py[cod]
+venv/
+.venv/
